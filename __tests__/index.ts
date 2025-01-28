@@ -1,8 +1,9 @@
 import { describe, expect, test } from '@jest/globals';
-import { otherPlayer, playerToString } from '..';
-// import * as fc from 'fast-check';
-
-// import * as G from './generators';
+import { otherPlayer, playerToString, scoreWhenAdvantage, scoreWhenDeuce } from '..';
+import * as fc from 'fast-check';
+import * as G from './generators';
+import { advantage, game } from '../types/score';
+import { isSamePlayer } from '../types/player';
 
 describe('Tests for tooling functions', () => {
   test('Given playerOne when playerToString', () => {
@@ -12,6 +13,27 @@ describe('Tests for tooling functions', () => {
   test('Given playerOne when otherPlayer', () => {
     expect(otherPlayer('PLAYER_ONE')).toStrictEqual('PLAYER_TWO');
   });
+});
+
+test('Given deuce, score is advantage to winner', () => {
+  fc.assert(
+    fc.property(G.getPlayer(), winner => {
+      const score = scoreWhenDeuce(winner);
+      const scoreExpected = advantage(winner);
+      expect(score).toStrictEqual(scoreExpected);
+    })
+  );
+});
+
+test('Given advantage when advantagedPlayer wins, score is Game avantagedPlayer', () => {
+  fc.assert(
+    fc.property(G.getPlayer(), G.getPlayer(), (advantagedPlayer, winner) => {
+      const score = scoreWhenAdvantage(advantagedPlayer, winner);
+      const scoreExpected = game(winner);
+      fc.pre(isSamePlayer(advantagedPlayer, winner));
+      expect(score).toStrictEqual(scoreExpected);
+    })
+  );
 });
 
 describe('Tests for transition functions', () => {
