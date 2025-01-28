@@ -64,6 +64,22 @@ export const game = (winner: Player): Game => ({
   player: winner,
 });
 
+export const deuce = (): Deuce => ({
+  kind: 'DEUCE',
+});
+
+export const  thirty = (): THIRTY => ({
+  kind: 'THIRTY',
+});
+
+export const forty = (player: Player, otherPoint: Point): Forty => ({
+  kind: 'FORTY',
+  fortyData: {
+    player: player,
+    otherPoint: otherPoint
+  }
+});
+
 export type FortyData = {
   player: Player;
   otherPoint: Point

@@ -1,5 +1,5 @@
-import { Player } from './types/player';
-import { advantage, Point, PointsData, Score } from './types/score';
+import { isSamePlayer, Player } from './types/player';
+import { advantage, deuce, FortyData, game, Point, PointsData, Score } from './types/score';
 // import { none, Option, some, match as matchOpt } from 'fp-ts/Option';
 // import { pipe } from 'fp-ts/lib/function';
 
@@ -55,15 +55,14 @@ export const scoreWhenAdvantage = (
   advantagedPlayed: Player,
   winner: Player
 ): Score => {
-  throw new Error('not implemented');
+  if (isSamePlayer(advantagedPlayed, winner)) return game(winner);
+  return deuce();
 };
 
 export const scoreWhenForty = (
-  currentForty: unknown, // TO UPDATE WHEN WE KNOW HOW TO REPRESENT FORTY
+  currentForty: FortyData,
   winner: Player
-): Score => {
-  throw new Error('not implemented');
-};
+): Score => game(winner);
 
 export const scoreWhenGame = (winner: Player): Score => {
   throw new Error('not implemented');
