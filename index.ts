@@ -1,11 +1,21 @@
 import { isSamePlayer, Player } from './types/player';
-import { advantage, deuce, FortyData, game, Point, PointsData, Score } from './types/score';
-// import { none, Option, some, match as matchOpt } from 'fp-ts/Option';
-// import { pipe } from 'fp-ts/lib/function';
+import {
+  advantage,
+  deuce,
+  forty,
+  FortyData,
+  game,
+  Point,
+  PointsData,
+  Score,
+} from './types/score';
+import { match as matchOpt } from 'fp-ts/Option';
+import { pipe } from 'fp-ts/function';
+import { incrementPoint } from './types/score.utils';
 
-// -------- Tooling functions --------- //
 
-export const playerToString = (player: Player) => {
+
+export const playerToString = (player: Player): string => {
   switch (player) {
     case 'PLAYER_ONE':
       return 'Player 1';
@@ -13,15 +23,14 @@ export const playerToString = (player: Player) => {
       return 'Player 2';
   }
 };
-export const otherPlayer = (player: Player) => {
-  switch (player) {
-    case 'PLAYER_ONE':
-      return 'PLAYER_TWO';
-    case 'PLAYER_TWO':
-      return 'PLAYER_ONE';
-  }
+
+export const otherPlayer = (player: Player): Player => {
+  return player === 'PLAYER_ONE' ? 'PLAYER_TWO' : 'PLAYER_ONE';
 };
-// Exercice 1 :
+
+
+// Exercice 1 : pointToString, scoreToString
+
 export const pointToString = (point: Point): string => {
   switch (point.kind) {
     case 'LOVE':
@@ -31,12 +40,16 @@ export const pointToString = (point: Point): string => {
     case 'THIRTY':
       return '30';
   }
-}
+};
 
 export const scoreToString = (score: Score): string => {
   switch (score.kind) {
     case 'POINTS':
-      return `${pointToString(score.pointsData.PLAYER_ONE)} - ${pointToString(score.pointsData.PLAYER_ONE)}`;
+      return (
+          pointToString(score.pointsData.PLAYER_ONE) +
+          ' - ' +
+          pointToString(score.pointsData.PLAYER_TWO)
+      );
     case 'GAME':
       return `${playerToString(score.player)} wins`;
     case 'DEUCE':
@@ -45,36 +58,80 @@ export const scoreToString = (score: Score): string => {
       return `Forty ${playerToString(score.fortyData.player)}`;
     case 'ADVANTAGE':
       return `Advantage ${playerToString(score.player)}`;
-
   }
-}
+};
+
 
 export const scoreWhenDeuce = (winner: Player): Score => advantage(winner);
 
 export const scoreWhenAdvantage = (
-  advantagedPlayed: Player,
-  winner: Player
+    advantagedPlayer: Player,
+    winner: Player
 ): Score => {
-  if (isSamePlayer(advantagedPlayed, winner)) return game(winner);
-  return deuce();
+  return isSamePlayer(advantagedPlayer, winner) ? game(winner) : deuce();
 };
 
-export const scoreWhenForty = (
-  currentForty: FortyData,
-  winner: Player
-): Score => game(winner);
+
+export const scoreWhenForty = (currentForty: FortyData, winner: Player): Score => {
+  if (isSamePlayer(currentForty.player, winner)) {
+    return game(winner);
+  }
+  return pipe(
+      incrementPoint(currentForty.otherPoint),
+      matchOpt<Point, Score>(
+          () => deuce(),
+          (newPoint) => forty(currentForty.player, newPoint)
+      )
+  );
+};
+
 
 export const scoreWhenGame = (winner: Player): Score => {
-  throw new Error('not implemented');
+  return game(winner);
 };
 
-// Exercice 2
-// Tip: You can use pipe function from fp-ts to improve readability.
-// See scoreWhenForty function above.
+
+// Exercice 2 : scoreWhenPoint
+
 export const scoreWhenPoint = (current: PointsData, winner: Player): Score => {
-  throw new Error('not implemented');
+  const winnerPoint = current[winner];
+
+  return pipe(
+      incrementPoint(winnerPoint),
+      matchOpt<Point, Score>(
+          () => {
+            const loser = otherPlayer(winner);
+            return forty(winner, current[loser]);
+          },
+          (nextPoint) => {
+            const newPointsData: PointsData = {
+              PLAYER_ONE:
+                  winner === 'PLAYER_ONE' ? nextPoint : current.PLAYER_ONE,
+              PLAYER_TWO:
+                  winner === 'PLAYER_TWO' ? nextPoint : current.PLAYER_TWO,
+            };
+            return {
+              kind: 'POINTS',
+              pointsData: newPointsData,
+            };
+          }
+      )
+  );
 };
+
+
 
 export const score = (currentScore: Score, winner: Player): Score => {
-  throw new Error('not implemented');
+  switch (currentScore.kind) {
+    case 'POINTS':
+      return scoreWhenPoint(currentScore.pointsData, winner);
+    case 'FORTY':
+      return scoreWhenForty(currentScore.fortyData, winner);
+    case 'DEUCE':
+      return scoreWhenDeuce(winner);
+    case 'ADVANTAGE':
+      return scoreWhenAdvantage(currentScore.player, winner);
+    case 'GAME':
+      return scoreWhenGame(winner);
+  }
 };
